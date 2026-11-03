@@ -1,65 +1,47 @@
-
-name: Build Vimu Cinema Hub v2 (SDK Fix)
-
+name: Build Vimu Cinema Hub 2.1 from ZIP
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
-
-permissions:
-  contents: read
+    paths:
+      - 'VimuCinemaHub_v2_1_Fixed_Source.zip'
+      - '.github/workflows/build-from-zip.yml'
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Unpack uploaded ZIP
-        shell: bash
+      - name: Extract source ZIP
         run: |
-          set -euo pipefail
-          unzip -q -o VimuCinemaHub_v2_Source.zip -d .
-          test -f settings.gradle
-          test -f mobile/src/main/assets/cinema.html
-          test -f tvbridge/build.gradle
-
-      - name: Set up Java 17
+          test -s VimuCinemaHub_v2_1_Fixed_Source.zip
+          unzip -q -o VimuCinemaHub_v2_1_Fixed_Source.zip -d .
+          test -s tvbridge/build.gradle
+          test -s mobile/build.gradle
+      - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Check preinstalled Android SDK
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          test -d "$ANDROID_HOME"
-          ls -la "$ANDROID_HOME/platforms" || true
-          ls -la "$ANDROID_HOME/build-tools" || true
-
-      - name: Set up Gradle 8.9
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-
-      - name: Compile TV bridge and Fold6 APK
+      - name: Build Google TV and Fold6 APK
         run: gradle :tvbridge:assembleDebug :mobile:assembleDebug --no-daemon --stacktrace
-
       - name: Upload Google TV bridge APK
         uses: actions/upload-artifact@v4
         with:
-          name: VimuCinemaHub_v2_GoogleTV_Bridge_APK
+          name: VimuCinema_2_1_GoogleTV_APK
           path: tvbridge/build/outputs/apk/debug/tvbridge-debug.apk
           if-no-files-found: error
-
       - name: Upload Fold6 APK
         uses: actions/upload-artifact@v4
         with:
-          name: VimuCinemaHub_v2_Fold6_APK
+          name: VimuCinema_2_1_Fold6_APK
           path: mobile/build/outputs/apk/debug/mobile-debug.apk
           if-no-files-found: error
