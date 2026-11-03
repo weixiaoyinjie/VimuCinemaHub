@@ -1,0 +1,42 @@
+name: Build Vimu Cinema Hub v2 from ZIP
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Unpack single uploaded source ZIP
+        run: |
+          unzip -q -o VimuCinemaHub_v2_Source.zip -d .
+          test -f settings.gradle
+          test -f mobile/src/main/assets/cinema.html
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compile Google TV bridge and Fold6 app
+        run: gradle :tvbridge:assembleDebug :mobile:assembleDebug --no-daemon --stacktrace
+      - name: Upload TV Bridge APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VimuCinemaHub_v2_GoogleTV_Bridge_APK
+          path: tvbridge/build/outputs/apk/debug/tvbridge-debug.apk
+          if-no-files-found: error
+      - name: Upload Fold6 Cinema Hub APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VimuCinemaHub_v2_Fold6_APK
+          path: mobile/build/outputs/apk/debug/mobile-debug.apk
+          if-no-files-found: error
